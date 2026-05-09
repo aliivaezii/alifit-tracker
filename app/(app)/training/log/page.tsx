@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { TRAINING_PLAN, type Exercise } from '@/lib/training-plan'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { Check, Plus, Minus, Save, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, Save, ChevronDown, ChevronUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +29,9 @@ interface ExerciseState {
   expanded: boolean
 }
 
+// Previous session reference: maps exercise_name -> "w1 / w2 / w3 kg"
+type PreviousWeights = Record<string, string>
+
 function WorkoutLoggerInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -36,14 +39,54 @@ function WorkoutLoggerInner() {
 
   const [selectedDay, setSelectedDay] = useState(initialDay ?? '1')
   const [exercises, setExercises] = useState<ExerciseState[]>([])
+  const [previousWeights, setPreviousWeights] = useState<PreviousWeights>({})
   const [saving, setSaving] = useState(false)
   const [sessionNotes, setSessionNotes] = useState('')
 
   const trainingDay = TRAINING_PLAN.find((d) => d.dayNumber === Number(selectedDay))!
 
+  // Load previous session weights for this day number
+  const loadPreviousWeights = useCallback(async (dayNumber: number) => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    // Find the most recent past session for this day
+    const { data: lastSession } = await supabase
+      .from('workout_sessions')
+      .select('id, date')
+      .eq('user_id', user.id)
+      .eq('day_number', dayNumber)
+      .lt('date', format(new Date(), 'yyyy-MM-dd'))
+      .order('date', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (!lastSession) { setPreviousWeights({}); return }
+
+    const { data: logs } = await supabase
+      .from('exercise_logs')
+      .select('exercise_name, set_number, weight_kg')
+      .eq('session_id', lastSession.id)
+      .eq('completed', true)
+      .order('set_number')
+
+    const map: PreviousWeights = {}
+    for (const log of logs ?? []) {
+      if (!map[log.exercise_name]) map[log.exercise_name] = ''
+      map[log.exercise_name] += (map[log.exercise_name] ? ' / ' : '') + log.weight_kg
+    }
+    // Append "kg" suffix
+    for (const key of Object.keys(map)) {
+      map[key] = map[key] + ' kg'
+    }
+    setPreviousWeights(map)
+  }, [])
+
   useEffect(() => {
     if (!trainingDay || trainingDay.isRest) {
       setExercises([])
+      setPreviousWeights({})
       return
     }
     setExercises(
@@ -59,7 +102,8 @@ function WorkoutLoggerInner() {
         expanded: true,
       }))
     )
-  }, [selectedDay, trainingDay])
+    loadPreviousWeights(Number(selectedDay))
+  }, [selectedDay, trainingDay, loadPreviousWeights])
 
   function updateSet(exIdx: number, setIdx: number, field: 'weightKg' | 'reps', value: number) {
     setExercises((prev) => {
@@ -186,7 +230,7 @@ function WorkoutLoggerInner() {
                   <div>
                     <CardTitle className="text-base">{ex.exercise.name}</CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {ex.exercise.sets}×{ex.exercise.repsRange} · <Badge variant="secondary" className="text-xs">{ex.exercise.muscleGroup}</Badge>
+                      {ex.exercise.sets}x{ex.exercise.repsRange} &middot; <Badge variant="secondary" className="text-xs">{ex.exercise.muscleGroup}</Badge>
                     </p>
                   </div>
                   <button onClick={() => toggleExpand(exIdx)} className="text-muted-foreground">
@@ -196,9 +240,12 @@ function WorkoutLoggerInner() {
               </CardHeader>
               {ex.expanded && (
                 <CardContent className="space-y-2">
-                  <p className="text-xs text-muted-foreground italic mb-3">{ex.exercise.coachingNote}</p>
+                  <p className="text-xs text-muted-foreground italic mb-1">{ex.exercise.coachingNote}</p>
+                  {/* Previous session reference */}
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Last session: {previousWeights[ex.exercise.name] ?? 'No previous data'}
+                  </p>
 
-                  {/* Header row */}
                   <div className="grid grid-cols-[40px_1fr_1fr_48px] gap-2 text-xs text-muted-foreground pb-1">
                     <span>Set</span><span>Weight (kg)</span><span>Reps</span><span></span>
                   </div>
@@ -238,7 +285,7 @@ function WorkoutLoggerInner() {
                   ))}
 
                   <Textarea
-                    placeholder="Notes for this exercise…"
+                    placeholder="Notes for this exercise..."
                     value={ex.notes}
                     onChange={(e) => {
                       setExercises((prev) => {
@@ -257,7 +304,7 @@ function WorkoutLoggerInner() {
           <Card>
             <CardContent className="pt-4">
               <Textarea
-                placeholder="Session notes (optional)…"
+                placeholder="Session notes (optional)..."
                 value={sessionNotes}
                 onChange={(e) => setSessionNotes(e.target.value)}
                 className="h-20 resize-none"
@@ -267,7 +314,7 @@ function WorkoutLoggerInner() {
 
           <Button className="w-full" size="lg" disabled={saving || completedSets === 0} onClick={saveWorkout}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving…' : `Finish Workout (${completedSets}/${totalSets} sets)`}
+            {saving ? 'Saving...' : `Finish Workout (${completedSets}/${totalSets} sets)`}
           </Button>
         </>
       )}

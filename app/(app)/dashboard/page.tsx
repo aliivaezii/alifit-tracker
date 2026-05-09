@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { computeStats } from '@/lib/fitness-math'
 import { TRAINING_PLAN } from '@/lib/training-plan'
-import { format, subDays, startOfDay } from 'date-fns'
+import { format, subDays } from 'date-fns'
 import { DashboardClient } from './dashboard-client'
 import type { MealLog, WeightLog, Profile } from '@/types'
 
@@ -36,10 +36,10 @@ export default async function DashboardPage() {
       .order('date', { ascending: true }),
     supabase
       .from('workout_sessions')
-      .select('*')
+      .select('date, day_number')
       .eq('user_id', user.id)
       .order('date', { ascending: false })
-      .limit(1),
+      .limit(10),
   ])
 
   const stats = computeStats(
@@ -51,7 +51,6 @@ export default async function DashboardPage() {
     profile.goal
   )
 
-  // Calculate today's consumed macros
   const todayMacros = (mealLogs ?? []).reduce(
     (acc, meal) => {
       const items = (meal as MealLog & { meal_items: Array<{ calories: number; protein: number; carbs: number; fat: number }> }).meal_items ?? []
@@ -65,9 +64,23 @@ export default async function DashboardPage() {
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   )
 
-  // Current training day: cycle based on day of year
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
-  const currentTrainingDay = TRAINING_PLAN[dayOfYear % 6]
+  // Derive next training day from the most recent session, not from date arithmetic.
+  // If today already has a session, show that day as active.
+  // Otherwise advance to the next day (wrap 6 -> 1).
+  const sessions = recentSessions ?? []
+  let nextDayNumber = 1
+  if (sessions.length > 0) {
+    const todaySession = sessions.find((s) => s.date === today)
+    if (todaySession) {
+      nextDayNumber = todaySession.day_number
+    } else {
+      const lastDayNumber = sessions[0].day_number
+      nextDayNumber = lastDayNumber >= 6 ? 1 : lastDayNumber + 1
+    }
+  }
+
+  const currentTrainingDay = TRAINING_PLAN.find((d) => d.dayNumber === nextDayNumber) ?? TRAINING_PLAN[0]
+  const lastSessionDate = sessions[0]?.date ?? null
 
   return (
     <DashboardClient
@@ -76,7 +89,7 @@ export default async function DashboardPage() {
       todayMacros={todayMacros}
       weightLogs={(weightLogs ?? []) as WeightLog[]}
       currentTrainingDay={currentTrainingDay}
-      lastSessionDate={recentSessions?.[0]?.date ?? null}
+      lastSessionDate={lastSessionDate}
     />
   )
 }

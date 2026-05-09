@@ -13,6 +13,7 @@ export interface Profile {
   height_cm: number
   goal: Goal
   activity_level: ActivityLevel
+  goal_weight_kg: number | null
   created_at: string
   updated_at: string
 }
@@ -30,6 +31,7 @@ export interface WorkoutSession {
   date: string
   day_number: number
   notes: string | null
+  is_deload: boolean
   completed_at: string | null
   exercise_logs?: ExerciseLog[]
 }

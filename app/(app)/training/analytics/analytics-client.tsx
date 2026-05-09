@@ -1,15 +1,16 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Legend,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react'
+import { AlertTriangle, TrendingDown, Trash2 } from 'lucide-react'
 import { VOLUME_TARGETS, MUSCLE_GROUP_COLORS } from '@/lib/training-plan'
+import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import type { WorkoutSession, ExerciseLog } from '@/types'
 
 interface Session extends WorkoutSession {
@@ -25,7 +26,19 @@ const DEFAULT_KEY_EXERCISES = [
   'Romanian DB Deadlift',
 ]
 
-export function TrainingAnalyticsClient({ sessions }: { sessions: Session[] }) {
+export function TrainingAnalyticsClient({ sessions: initialSessions }: { sessions: Session[] }) {
+  const [sessions, setSessions] = useState<Session[]>(initialSessions)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  async function deleteSession(id: string) {
+    const supabase = createClient()
+    await supabase.from('exercise_logs').delete().eq('session_id', id)
+    const { error } = await supabase.from('workout_sessions').delete().eq('id', id)
+    if (error) { toast.error(error.message); return }
+    setSessions((prev) => prev.filter((s) => s.id !== id))
+    setConfirmDeleteId(null)
+    toast.success('Session deleted')
+  }
   // Discover the top exercises by frequency across all sessions (min 2 appearances)
   const keyExercises = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -248,9 +261,22 @@ export function TrainingAnalyticsClient({ sessions }: { sessions: Session[] }) {
                         {s.exercise_logs?.filter((l) => l.completed).length ?? 0} sets completed
                       </p>
                     </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {s.exercise_logs?.map((l) => l.exercise_name).filter((v, i, a) => a.indexOf(v) === i).length ?? 0} exercises
-                    </Badge>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary" className="text-xs">
+                        {s.exercise_logs?.map((l) => l.exercise_name).filter((v, i, a) => a.indexOf(v) === i).length ?? 0} exercises
+                      </Badge>
+                      {confirmDeleteId === s.id ? (
+                        <span className="flex items-center gap-1 text-xs">
+                          <button onClick={() => deleteSession(s.id)} className="text-destructive font-medium hover:underline">Confirm</button>
+                          <span className="text-muted-foreground">/</span>
+                          <button onClick={() => setConfirmDeleteId(null)} className="text-muted-foreground hover:underline">Cancel</button>
+                        </span>
+                      ) : (
+                        <button onClick={() => setConfirmDeleteId(s.id)} className="text-muted-foreground hover:text-destructive transition-colors p-0.5">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
