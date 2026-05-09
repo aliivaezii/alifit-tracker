@@ -96,7 +96,8 @@
   }
   body {
     @apply text-foreground;
-    background-color: transparent;
+    /* !important beats any Tailwind bg-* class applied in JSX */
+    background: transparent !important;
     position: relative;
   }
   /* Blurred hero background rendered via pseudo-elements so it sits behind
