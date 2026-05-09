@@ -13,9 +13,6 @@ import { createClient } from '@/lib/supabase/client'
 import type { Profile, WeightLog } from '@/types'
 import { TrendingDown, Target, Scale } from 'lucide-react'
 
-const START_WEIGHT = 96
-const GOAL_WEIGHT = 80
-
 interface Props {
   profile: Profile
   weightLogs: WeightLog[]
@@ -28,10 +25,17 @@ export function ProgressClient({ profile, weightLogs: initialLogs, userId }: Pro
   const [logDate, setLogDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [saving, setSaving] = useState(false)
 
+  // Derive start from oldest log; derive goal from healthy BMI 25.5 for user's height
+  const START_WEIGHT = Number(initialLogs.at(0)?.weight_kg ?? profile.weight_kg)
+  const GOAL_WEIGHT = Math.round(25.5 * Math.pow(profile.height_cm / 100, 2))
+
   const currentWeight = weightLogs.at(-1)?.weight_kg ?? profile.weight_kg
   const totalLoss = START_WEIGHT - currentWeight
   const remainingLoss = currentWeight - GOAL_WEIGHT
-  const progressPct = Math.round(((START_WEIGHT - currentWeight) / (START_WEIGHT - GOAL_WEIGHT)) * 100)
+  const progressPct = Math.max(
+    0,
+    Math.round(((START_WEIGHT - currentWeight) / (START_WEIGHT - GOAL_WEIGHT)) * 100),
+  )
 
   // Estimate weekly loss
   let weeklyLoss = 0
@@ -73,16 +77,18 @@ export function ProgressClient({ profile, weightLogs: initialLogs, userId }: Pro
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Progress Tracker</h1>
-        <p className="text-muted-foreground text-sm mt-1">Start: 96 kg → Current: {currentWeight} kg → Goal: 80 kg</p>
+        <p className="text-muted-foreground text-sm mt-1">
+          Start: {START_WEIGHT} kg &rarr; Current: {currentWeight} kg &rarr; Goal: {GOAL_WEIGHT} kg
+        </p>
       </div>
 
       {/* Progress bar */}
       <Card className="border-primary/30">
         <CardContent className="pt-5 pb-4">
           <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-muted-foreground">96 kg (start)</span>
+            <span className="text-muted-foreground">{START_WEIGHT} kg (start)</span>
             <span className="font-semibold text-primary">{currentWeight} kg</span>
-            <span className="text-muted-foreground">80 kg (goal)</span>
+            <span className="text-muted-foreground">{GOAL_WEIGHT} kg (goal)</span>
           </div>
           <Progress value={progressPct} className="h-3" />
           <div className="flex justify-between mt-2 text-xs text-muted-foreground">
@@ -175,7 +181,7 @@ export function ProgressClient({ profile, weightLogs: initialLogs, userId }: Pro
                   contentStyle={{ background: '#1e293b', border: 'none', borderRadius: 8, fontSize: 12 }}
                   formatter={(v) => [`${v as number} kg`, 'Weight']}
                 />
-                <ReferenceLine y={GOAL_WEIGHT} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: 'Goal', fill: '#f59e0b', fontSize: 11 }} />
+                <ReferenceLine y={GOAL_WEIGHT} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: `Goal ${GOAL_WEIGHT}kg`, fill: '#f59e0b', fontSize: 11 }} />
                 <Line type="monotone" dataKey="weight" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: '#10b981' }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
