@@ -147,7 +147,7 @@ export function Sidebar() {
                 )}
               </Link>
 
-              {/* Sub-items — only when expanded and parent is active */}
+              {/* Sub-items -- only when expanded and parent is active */}
               {!collapsed && hasChildren && isActive && (
                 <div className="ml-7 mt-0.5 space-y-0.5 pb-1">
                   {item.children!.map((child) => (

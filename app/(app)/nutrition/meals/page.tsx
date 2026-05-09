@@ -4,7 +4,7 @@ import { Clock } from 'lucide-react'
 
 const MEAL_PLAN = [
   {
-    time: '6:15–6:30 AM',
+    time: '6:15-6:30 AM',
     label: 'Pre-Workout',
     foods: '1 banana · ½ scoop Whey ON · 1 coffee',
     kcal: 180,
@@ -14,9 +14,9 @@ const MEAL_PLAN = [
     color: '#10b981',
   },
   {
-    time: '8:30–9:00 AM',
+    time: '8:30-9:00 AM',
     label: 'Post-Workout Breakfast',
-    foods: '80g oat flakes · 250ml protein milk · 1 scoop Whey ON · banana/strawberries · 3–5g Creatine',
+    foods: '80g oat flakes · 250ml protein milk · 1 scoop Whey ON · banana/strawberries · 3-5g Creatine',
     kcal: 680,
     protein: 57,
     carbs: 87,
@@ -24,7 +24,7 @@ const MEAL_PLAN = [
     color: '#3b82f6',
   },
   {
-    time: '12:30–1:00 PM',
+    time: '12:30-1:00 PM',
     label: 'Mensa Lunch',
     foods: 'Salad (mozzarella + tuna + lettuce) · chicken/fish secondo · fruit dessert',
     kcal: 550,
@@ -34,7 +34,7 @@ const MEAL_PLAN = [
     color: '#f59e0b',
   },
   {
-    time: '4:00–4:30 PM',
+    time: '4:00-4:30 PM',
     label: 'Afternoon Snack',
     foods: '1 ES Sport High Protein Bar',
     kcal: 200,
@@ -44,7 +44,7 @@ const MEAL_PLAN = [
     color: '#8b5cf6',
   },
   {
-    time: '7:30–8:00 PM',
+    time: '7:30-8:00 PM',
     label: 'Dinner',
     foods: '150g ground meat or chicken · 200g potato · salad',
     kcal: 520,
@@ -54,7 +54,7 @@ const MEAL_PLAN = [
     color: '#ef4444',
   },
   {
-    time: '9:30–10:00 PM',
+    time: '9:30-10:00 PM',
     label: 'Evening Snack',
     foods: '200g fat-free yogurt · strawberries',
     kcal: 148,
@@ -80,7 +80,7 @@ export default function MealPlanPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Daily Meal Plan</h1>
-        <p className="text-muted-foreground text-sm mt-1">Reference schedule — 6 meals · ~2,450 kcal · 172g protein</p>
+        <p className="text-muted-foreground text-sm mt-1">Reference schedule -- 6 meals · ~2,450 kcal · 172g protein</p>
       </div>
 
       {/* Totals card */}

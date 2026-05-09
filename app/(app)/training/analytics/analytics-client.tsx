@@ -208,7 +208,7 @@ export function TrainingAnalyticsClient({ sessions }: { sessions: Session[] }) {
                         }}
                       />
                     </div>
-                    <span className="text-muted-foreground text-xs">{sets} / {target.min}–{target.max}</span>
+                    <span className="text-muted-foreground text-xs">{sets} / {target.min}-{target.max}</span>
                     <Badge
                       variant={status === 'optimal' ? 'default' : 'secondary'}
                       className={
@@ -243,7 +243,7 @@ export function TrainingAnalyticsClient({ sessions }: { sessions: Session[] }) {
                 <div key={s.id} className="py-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">{format(new Date(s.date), 'MMM d, yyyy')} — Day {s.day_number}</p>
+                      <p className="text-sm font-medium">{format(new Date(s.date), 'MMM d, yyyy')} -- Day {s.day_number}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {s.exercise_logs?.filter((l) => l.completed).length ?? 0} sets completed
                       </p>

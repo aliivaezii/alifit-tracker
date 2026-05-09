@@ -48,7 +48,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* AliFit dark navy theme — always dark */
+/* AliFit dark navy theme -- always dark */
 :root {
   --background: oklch(0.13 0.02 240);
   --foreground: oklch(0.97 0 0);

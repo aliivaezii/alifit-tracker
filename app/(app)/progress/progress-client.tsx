@@ -125,7 +125,7 @@ export function ProgressClient({ profile, weightLogs: initialLogs, userId }: Pro
         <Card>
           <CardContent className="pt-4">
             <p className="text-2xl font-bold">
-              {estimatedWeeks ? `~${estimatedWeeks}w` : '—'}
+              {estimatedWeeks ? `~${estimatedWeeks}w` : '--'}
             </p>
             <p className="text-xs text-muted-foreground">est. to goal</p>
           </CardContent>

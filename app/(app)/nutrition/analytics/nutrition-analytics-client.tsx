@@ -102,7 +102,7 @@ export function NutritionAnalyticsClient({ mealLogs, stats }: Props) {
       {/* 7-day calorie bar chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Calorie Intake — Last 7 Days</CardTitle>
+          <CardTitle className="text-sm">Calorie Intake -- Last 7 Days</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={180}>
@@ -188,7 +188,7 @@ export function NutritionAnalyticsClient({ mealLogs, stats }: Props) {
       {/* 30-day protein chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Daily Protein — Last 30 Days</CardTitle>
+          <CardTitle className="text-sm">Daily Protein -- Last 30 Days</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={160}>

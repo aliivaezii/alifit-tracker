@@ -163,7 +163,7 @@ function WorkoutLoggerInner() {
           <SelectContent>
             {TRAINING_PLAN.map((d) => (
               <SelectItem key={d.dayNumber} value={String(d.dayNumber)}>
-                Day {d.dayNumber} — {d.name}
+                Day {d.dayNumber} -- {d.name}
               </SelectItem>
             ))}
           </SelectContent>

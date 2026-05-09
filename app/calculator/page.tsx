@@ -56,7 +56,7 @@ export default function CalorieCalculatorPage() {
             <span className="text-2xl font-bold tracking-tight">Calorie Calculator</span>
           </div>
           <p className="text-muted-foreground text-sm text-center">
-            Free BMR/TDEE calculator — no account required
+            Free BMR/TDEE calculator -- no account required
           </p>
         </div>
 

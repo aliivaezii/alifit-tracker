@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 
 export const metadata: Metadata = {
   title: 'AliFit Tracker',
-  description: 'Personal fitness & nutrition dashboard — training, macros, and progressive overload',
+  description: 'Personal fitness & nutrition dashboard -- training, macros, and progressive overload',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

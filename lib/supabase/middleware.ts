@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Only redirect away from login/signup — not from onboarding or callback
+  // Only redirect away from login/signup -- not from onboarding or callback
   if (user && isLoginOrSignup) {
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
