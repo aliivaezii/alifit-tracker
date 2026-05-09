@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, WeightLog } from '@/types'
-import { TrendingDown, Target, Scale } from 'lucide-react'
+import { TrendingDown, Target, Scale, Trash2 } from 'lucide-react'
 
 interface Props {
   profile: Profile
@@ -24,10 +24,11 @@ export function ProgressClient({ profile, weightLogs: initialLogs, userId }: Pro
   const [newWeight, setNewWeight] = useState('')
   const [logDate, setLogDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [saving, setSaving] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
-  // Derive start from oldest log; derive goal from healthy BMI 25.5 for user's height
+  // Use stored goal weight if available; fall back to healthy BMI 25.5 heuristic
   const START_WEIGHT = Number(initialLogs.at(0)?.weight_kg ?? profile.weight_kg)
-  const GOAL_WEIGHT = Math.round(25.5 * Math.pow(profile.height_cm / 100, 2))
+  const GOAL_WEIGHT = profile.goal_weight_kg ?? Math.round(25.5 * Math.pow(profile.height_cm / 100, 2))
 
   const currentWeight = weightLogs.at(-1)?.weight_kg ?? profile.weight_kg
   const totalLoss = START_WEIGHT - currentWeight
@@ -51,6 +52,15 @@ export function ProgressClient({ profile, weightLogs: initialLogs, userId }: Pro
     date: format(new Date(w.date), 'MMM d'),
     weight: w.weight_kg,
   }))
+
+  async function deleteWeightEntry(id: string) {
+    const supabase = createClient()
+    const { error } = await supabase.from('weight_logs').delete().eq('id', id)
+    if (error) { toast.error(error.message); return }
+    setWeightLogs((prev) => prev.filter((w) => w.id !== id))
+    setConfirmDeleteId(null)
+    toast.success('Entry deleted')
+  }
 
   async function logWeight() {
     if (!newWeight) return
@@ -208,15 +218,28 @@ export function ProgressClient({ profile, weightLogs: initialLogs, userId }: Pro
                 const prev = idx > 0 ? weightLogs[idx - 1] : null
                 const diff = prev ? Number(w.weight_kg) - Number(prev.weight_kg) : null
                 return (
-                  <div key={w.id} className="py-2 flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{format(new Date(w.date), 'EEE, MMM d yyyy')}</span>
-                    <div className="flex items-center gap-3">
-                      {diff !== null && (
-                        <span className={`text-xs ${diff < 0 ? 'text-primary' : diff > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                          {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
-                        </span>
-                      )}
-                      <span className="font-medium">{w.weight_kg} kg</span>
+                  <div key={w.id} className="py-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{format(new Date(w.date), 'EEE, MMM d yyyy')}</span>
+                      <div className="flex items-center gap-3">
+                        {diff !== null && (
+                          <span className={`text-xs ${diff < 0 ? 'text-primary' : diff > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
+                          </span>
+                        )}
+                        <span className="font-medium">{w.weight_kg} kg</span>
+                        {confirmDeleteId === w.id ? (
+                          <span className="flex items-center gap-1 text-xs">
+                            <button onClick={() => deleteWeightEntry(w.id)} className="text-destructive font-medium hover:underline">Confirm</button>
+                            <span className="text-muted-foreground">/</span>
+                            <button onClick={() => setConfirmDeleteId(null)} className="text-muted-foreground hover:underline">Cancel</button>
+                          </span>
+                        ) : (
+                          <button onClick={() => setConfirmDeleteId(w.id)} className="text-muted-foreground hover:text-destructive transition-colors p-0.5">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
