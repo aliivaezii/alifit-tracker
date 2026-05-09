@@ -26,15 +26,20 @@ const schema = z.object({
   height_cm: z.coerce.number().min(100).max(250),
   goal: z.enum(['fat_loss', 'recomposition', 'muscle_gain']),
   activity_level: z.enum(['sedentary', 'lightly_active', 'moderately_active', 'very_active']),
+  goal_weight_kg: z.coerce.number().min(40).max(300),
 })
 type FormData = z.infer<typeof schema>
 
 export function SettingsClient({ profile, email }: { profile: Profile; email: string }) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [currentStats] = useState(() => computeStats(
     profile.weight_kg, profile.height_cm, profile.dob, profile.gender, profile.activity_level, profile.goal
   ))
+
+  const defaultGoalWeight = profile.goal_weight_kg ?? Math.round(25.5 * Math.pow(profile.height_cm / 100, 2))
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
@@ -46,6 +51,7 @@ export function SettingsClient({ profile, email }: { profile: Profile; email: st
       height_cm: profile.height_cm,
       goal: profile.goal,
       activity_level: profile.activity_level,
+      goal_weight_kg: defaultGoalWeight,
     },
   })
 
@@ -69,6 +75,7 @@ export function SettingsClient({ profile, email }: { profile: Profile; email: st
         height_cm: data.height_cm,
         goal: data.goal,
         activity_level: data.activity_level,
+        goal_weight_kg: data.goal_weight_kg,
       })
       .eq('user_id', profile.user_id)
 
@@ -79,10 +86,117 @@ export function SettingsClient({ profile, email }: { profile: Profile; email: st
   }
 
   async function deleteAccount() {
+    setDeleting(true)
     const supabase = createClient()
+
+    // Delete all user data in dependency order (child rows first)
+    const { data: mealLogIds } = await supabase
+      .from('meal_logs')
+      .select('id')
+      .eq('user_id', profile.user_id)
+
+    if (mealLogIds && mealLogIds.length > 0) {
+      const ids = mealLogIds.map((r) => r.id)
+      const { error } = await supabase.from('meal_items').delete().in('meal_log_id', ids)
+      if (error) { toast.error('Failed to delete meal items: ' + error.message); setDeleting(false); return }
+    }
+
+    const { error: mlErr } = await supabase.from('meal_logs').delete().eq('user_id', profile.user_id)
+    if (mlErr) { toast.error('Failed to delete meal logs: ' + mlErr.message); setDeleting(false); return }
+
+    const { data: sessionIds } = await supabase
+      .from('workout_sessions')
+      .select('id')
+      .eq('user_id', profile.user_id)
+
+    if (sessionIds && sessionIds.length > 0) {
+      const ids = sessionIds.map((r) => r.id)
+      const { error } = await supabase.from('exercise_logs').delete().in('session_id', ids)
+      if (error) { toast.error('Failed to delete exercise logs: ' + error.message); setDeleting(false); return }
+    }
+
+    const { error: wsErr } = await supabase.from('workout_sessions').delete().eq('user_id', profile.user_id)
+    if (wsErr) { toast.error('Failed to delete workout sessions: ' + wsErr.message); setDeleting(false); return }
+
+    const { error: wlErr } = await supabase.from('weight_logs').delete().eq('user_id', profile.user_id)
+    if (wlErr) { toast.error('Failed to delete weight logs: ' + wlErr.message); setDeleting(false); return }
+
+    const { error: profErr } = await supabase.from('profiles').delete().eq('user_id', profile.user_id)
+    if (profErr) { toast.error('Failed to delete profile: ' + profErr.message); setDeleting(false); return }
+
+    // Delete auth user via API route (requires service role key server-side)
+    const res = await fetch('/api/delete-account', { method: 'POST' })
+    if (!res.ok) {
+      // Auth user deletion failed but data is gone -- still sign out
+      console.error('Auth user deletion failed, but data was deleted')
+    }
+
     await supabase.auth.signOut()
     router.push('/auth/login')
-    toast.success('Account deleted. Data removed.')
+    toast.success('Account and all data deleted.')
+  }
+
+  async function exportData(format: 'csv' | 'json') {
+    setExporting(true)
+    const supabase = createClient()
+    const today = new Date().toISOString().slice(0, 10)
+
+    const [{ data: weightLogs }, { data: sessions }, { data: mealLogs }, { data: mealItems }] = await Promise.all([
+      supabase.from('weight_logs').select('*').eq('user_id', profile.user_id).order('date'),
+      supabase.from('workout_sessions').select('*').eq('user_id', profile.user_id).order('date'),
+      supabase.from('meal_logs').select('*').eq('user_id', profile.user_id).order('date'),
+      supabase.from('meal_items').select('*'),
+    ])
+
+    // Fetch exercise_logs for all sessions
+    const sessionIds = (sessions ?? []).map((s) => s.id)
+    const { data: exerciseLogs } = sessionIds.length > 0
+      ? await supabase.from('exercise_logs').select('*').in('session_id', sessionIds)
+      : { data: [] }
+
+    if (format === 'json') {
+      const payload = {
+        exported_at: new Date().toISOString(),
+        weight_logs: weightLogs ?? [],
+        workout_sessions: sessions ?? [],
+        exercise_logs: exerciseLogs ?? [],
+        meal_logs: mealLogs ?? [],
+        meal_items: mealItems ?? [],
+      }
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `alifit_export_${today}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } else {
+      const { default: JSZip } = await import('jszip')
+      const zip = new JSZip()
+
+      const toCsv = (rows: Record<string, unknown>[] | null) => {
+        if (!rows || rows.length === 0) return ''
+        const keys = Object.keys(rows[0])
+        return [keys.join(','), ...rows.map((r) => keys.map((k) => JSON.stringify(r[k] ?? '')).join(','))].join('\n')
+      }
+
+      zip.file('weight_logs.csv', toCsv(weightLogs))
+      zip.file('workout_sessions.csv', toCsv(sessions))
+      zip.file('exercise_logs.csv', toCsv(exerciseLogs))
+      zip.file('meal_logs.csv', toCsv(mealLogs))
+      zip.file('meal_items.csv', toCsv(mealItems))
+
+      const blob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `alifit_export_${today}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+
+    setExporting(false)
+    toast.success(`Data exported as ${format.toUpperCase()}`)
   }
 
   return (
@@ -147,6 +261,11 @@ export function SettingsClient({ profile, email }: { profile: Profile; email: st
                 <Label>Height (cm)</Label>
                 <Input type="number" {...register('height_cm')} />
               </div>
+              <div className="space-y-2">
+                <Label>Goal weight (kg)</Label>
+                <Input type="number" step="0.1" {...register('goal_weight_kg')} />
+                {errors.goal_weight_kg && <p className="text-destructive text-xs">{errors.goal_weight_kg.message}</p>}
+              </div>
               <div className="col-span-2 space-y-2">
                 <Label>Goal</Label>
                 <Select defaultValue={profile.goal} onValueChange={(v) => setValue('goal', v as Goal)}>
@@ -184,10 +303,31 @@ export function SettingsClient({ profile, email }: { profile: Profile; email: st
             )}
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</Button>
           </CardFooter>
         </Card>
       </form>
+
+      {/* Data export */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Export My Data
+          </CardTitle>
+          <CardDescription>Download all your data as CSV (ZIP) or JSON</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <Button variant="outline" size="sm" disabled={exporting} onClick={() => exportData('csv')}>
+              {exporting ? 'Exporting...' : 'Export as CSV (ZIP)'}
+            </Button>
+            <Button variant="outline" size="sm" disabled={exporting} onClick={() => exportData('json')}>
+              {exporting ? 'Exporting...' : 'Export as JSON'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Danger zone */}
       <Card className="border-destructive/30">
@@ -213,8 +353,12 @@ export function SettingsClient({ profile, email }: { profile: Profile; email: st
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={deleteAccount} className="bg-destructive text-destructive-foreground">
-                    Delete my account
+                  <AlertDialogAction
+                    onClick={deleteAccount}
+                    className="bg-destructive text-destructive-foreground"
+                    disabled={deleting}
+                  >
+                    {deleting ? 'Deleting...' : 'Delete my account'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
