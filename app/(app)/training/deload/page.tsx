@@ -65,7 +65,7 @@ export default async function DeloadPage() {
             <div>
               <p className="text-3xl font-bold">Week {mesocycleWeek} <span className="text-muted-foreground text-lg font-normal">/ 4</span></p>
               {isDeloadWeek ? (
-                <p className="text-amber-400 font-medium mt-1">⚠️ Deload week — reduce intensity to 50–60%</p>
+                <p className="text-amber-400 font-medium mt-1">⚠️ Deload week -- reduce intensity to 50-60%</p>
               ) : (
                 <p className="text-muted-foreground mt-1">
                   {4 - mesocycleWeek} week{4 - mesocycleWeek !== 1 ? 's' : ''} until next deload
@@ -130,9 +130,9 @@ export default async function DeloadPage() {
           <p>During deload week (Week 4), follow these guidelines:</p>
           <ul className="space-y-2 list-none">
             {[
-              '🏋️ Reduce all weights to 50–60% of your last working weight',
-              '📉 Drop 1–2 sets per exercise (e.g. 4×8 → 3×8)',
-              '🚫 Do NOT train to failure — stop 3–4 reps from failure',
+              '🏋️ Reduce all weights to 50-60% of your last working weight',
+              '📉 Drop 1-2 sets per exercise (e.g. 4×8 → 3×8)',
+              '🚫 Do NOT train to failure -- stop 3-4 reps from failure',
               '😴 Prioritise sleep (8h+) and recovery',
               '💧 Stay hydrated and maintain protein intake',
               '🔁 Return to Week 1 loading next week, slightly heavier than before deload',

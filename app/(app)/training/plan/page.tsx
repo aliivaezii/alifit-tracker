@@ -51,7 +51,7 @@ export default function TrainingPlanPage() {
                 {day.isRest ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <BedDouble className="h-12 w-12 mx-auto mb-2 opacity-40" />
-                    <p>Rest day — prioritise sleep, hydration, and light activity.</p>
+                    <p>Rest day -- prioritise sleep, hydration, and light activity.</p>
                     <p className="text-xs mt-1">Walking, stretching, or mobility work is encouraged.</p>
                   </div>
                 ) : (

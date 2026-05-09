@@ -115,7 +115,7 @@ export default function OnboardingPage() {
           <Dumbbell className="h-8 w-8 text-primary" />
           <h1 className="text-2xl font-bold">Complete your profile</h1>
           <p className="text-muted-foreground text-sm text-center">
-            We&apos;ll calculate your personalized targets — BMR, TDEE, macros, and calories.
+            We&apos;ll calculate your personalized targets -- BMR, TDEE, macros, and calories.
           </p>
         </div>
 
@@ -123,7 +123,7 @@ export default function OnboardingPage() {
           <Card>
             <CardHeader>
               <CardTitle>Personal stats</CardTitle>
-              <CardDescription>Pre-filled with Ali Vaezi&apos;s data — edit as needed</CardDescription>
+              <CardDescription>Pre-filled with Ali Vaezi&apos;s data -- edit as needed</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

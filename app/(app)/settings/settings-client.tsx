@@ -73,7 +73,7 @@ export function SettingsClient({ profile, email }: { profile: Profile; email: st
       .eq('user_id', profile.user_id)
 
     if (error) { toast.error(error.message); setSaving(false); return }
-    toast.success('Profile updated — targets recalculated')
+    toast.success('Profile updated -- targets recalculated')
     setSaving(false)
     router.refresh()
   }

@@ -86,7 +86,7 @@ export function DashboardClient({ profile, stats, todayMacros, weightLogs, curre
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-lg font-semibold">Day {currentTrainingDay.dayNumber} — {currentTrainingDay.name}</p>
+              <p className="text-lg font-semibold">Day {currentTrainingDay.dayNumber} -- {currentTrainingDay.name}</p>
               <p className="text-sm text-muted-foreground">{currentTrainingDay.focus}</p>
             </div>
             {!currentTrainingDay.isRest && (
@@ -207,7 +207,7 @@ export function DashboardClient({ profile, stats, todayMacros, weightLogs, curre
         <CardHeader>
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            Weight Trend — Last 30 Days
+            Weight Trend -- Last 30 Days
           </CardTitle>
         </CardHeader>
         <CardContent>
