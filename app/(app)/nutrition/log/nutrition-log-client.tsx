@@ -140,13 +140,18 @@ export function NutritionLogClient({ foods, initialMealLogs, stats, userId, toda
   async function removeItem(mealLogId: string, itemId: string) {
     const supabase = createClient()
     await supabase.from('meal_items').delete().eq('id', itemId)
-    setMealLogs((prev) =>
-      prev.map((m) =>
+
+    setMealLogs((prev) => {
+      const updated = prev.map((m) =>
         m.id === mealLogId
           ? { ...m, meal_items: m.meal_items.filter((i) => i.id !== itemId) }
           : m
       )
-    )
+      // Remove parent meal_log if it has no remaining items
+      const emptyLogs = updated.filter((m) => m.meal_items.length === 0)
+      emptyLogs.forEach((m) => supabase.from('meal_logs').delete().eq('id', m.id))
+      return updated.filter((m) => m.meal_items.length > 0)
+    })
     toast.success('Removed')
   }
 
