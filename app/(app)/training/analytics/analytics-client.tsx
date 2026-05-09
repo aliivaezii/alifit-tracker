@@ -16,17 +16,38 @@ interface Session extends WorkoutSession {
   exercise_logs: ExerciseLog[]
 }
 
-const KEY_EXERCISES = [
+// Fallback list shown before any sessions are logged
+const DEFAULT_KEY_EXERCISES = [
   'Barbell Bench Press',
-  'Barbell Back Squat',
   'Lat Pull-Down',
-  'Leg Press (Wide Stance)',
+  'Leg Press Wide Stance',
   'Overhead Cable Extension',
+  'Romanian DB Deadlift',
 ]
 
 export function TrainingAnalyticsClient({ sessions }: { sessions: Session[] }) {
+  // Discover the top exercises by frequency across all sessions (min 2 appearances)
+  const keyExercises = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of sessions) {
+      const seen = new Set<string>()
+      for (const log of s.exercise_logs) {
+        if (!seen.has(log.exercise_name)) {
+          counts[log.exercise_name] = (counts[log.exercise_name] ?? 0) + 1
+          seen.add(log.exercise_name)
+        }
+      }
+    }
+    const frequent = Object.entries(counts)
+      .filter(([, n]) => n >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name]) => name)
+    return frequent.length > 0 ? frequent : DEFAULT_KEY_EXERCISES
+  }, [sessions])
+
   const progressionData = useMemo(() => {
-    return KEY_EXERCISES.map((name) => {
+    return keyExercises.map((name) => {
       const points = sessions
         .filter((s) => s.exercise_logs.some((l) => l.exercise_name === name))
         .map((s) => {
@@ -63,7 +84,7 @@ export function TrainingAnalyticsClient({ sessions }: { sessions: Session[] }) {
   // Performance flags
   const flags = useMemo(() => {
     const result: { exercise: string; type: 'regression' | 'stall'; message: string }[] = []
-    for (const ex of KEY_EXERCISES) {
+    for (const ex of keyExercises) {
       const exSessions = sessions
         .filter((s) => s.exercise_logs.some((l) => l.exercise_name === ex && l.completed))
         .slice(-4)

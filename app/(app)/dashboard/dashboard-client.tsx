@@ -242,9 +242,9 @@ export function DashboardClient({ profile, stats, todayMacros, weightLogs, curre
             </div>
           )}
           <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-            <span>Start: 96 kg</span>
+            <span>Start: {weightLogs.at(0)?.weight_kg ?? profile.weight_kg} kg</span>
             <span>Current: {latestWeight} kg</span>
-            <span>Goal: 80 kg</span>
+            <span>Goal: {Math.round(25.5 * Math.pow(profile.height_cm / 100, 2))} kg</span>
           </div>
         </CardContent>
       </Card>
