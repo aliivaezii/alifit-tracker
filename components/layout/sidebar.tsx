@@ -15,10 +15,13 @@ import {
   Calculator,
   PanelLeftClose,
   PanelLeftOpen,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { useTheme } from '@/components/providers/theme-provider'
 
 const STORAGE_KEY = 'alifit-sidebar-collapsed'
 
@@ -53,6 +56,7 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const { theme, toggleTheme } = useTheme()
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
@@ -185,8 +189,20 @@ export function Sidebar() {
         </Link>
       </nav>
 
-      {/* ── Footer / sign-out ── */}
-      <div className="p-2 border-t border-sidebar-border">
+      {/* ── Footer ── */}
+      <div className="p-2 border-t border-sidebar-border space-y-0.5">
+        <button
+          onClick={toggleTheme}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm',
+            'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground w-full transition-colors',
+            collapsed && 'justify-center px-0',
+          )}
+          title={collapsed ? (theme === 'dark' ? 'Light mode' : 'Dark mode') : undefined}
+        >
+          {theme === 'dark' ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+          {!collapsed && <span className="whitespace-nowrap">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
+        </button>
         <button
           onClick={handleSignOut}
           className={cn(
